@@ -6,12 +6,13 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2022 STMicroelectronics.
-  * All rights reserved.
+  * <h2><center>&copy; Copyright (c) 2021 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
   */
@@ -26,7 +27,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ssd1306.h"
+#include "font_ascii_5x7.h"
+#include "GFX.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,7 +49,30 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint16_t i2c_scaner(I2C_HandleTypeDef *interface)
+{
+	uint8_t i =0;
+	HAL_StatusTypeDef result;
+	for (i=1; i<128; i++)
+	{
+	  /*
+	   * the HAL wants a left aligned i2c address
+	   * &hi2c1 is the handle
+	   * (uint16_t)(i<<1) is the i2c address left aligned
+	   * retries 2
+	   * timeout 2
+	   */
+	  result = HAL_I2C_IsDeviceReady(&hi2c2, (uint16_t)(i<<1), 2, 2);
+	  if (result != HAL_OK) // HAL_ERROR or HAL_BUSY or HAL_TIMEOUT
+	  {
+		  return false;
+	  }
+	  if (result == HAL_OK)
+	  {
+		 return i;
+	  }
+	}
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,12 +125,48 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
+	  bool addrs;
+HAL_StatusTypeDef result;
+uint8_t i=0;
+/*for (i=1; i<128; i++)
+{
+  result = HAL_I2C_IsDeviceReady(&hi2c2, (uint16_t)(i<<1), 2, 2);
+  if (result != HAL_OK) // HAL_ERROR or HAL_BUSY or HAL_TIMEOUT
+  {
+	  addrs=false;
+  }
+  if (result == HAL_OK)
+  {
+	 addrs=true;
+  }
+}
+  uint16_t addres;
+
+  HAL_Delay (2000);*/
+  /*GFX_draw_string(0, 56, (unsigned char *)"Osmy", WHITE, BLACK, 1, 1);
+  GFX_draw_string(0, 48, (unsigned char *)"Siodmy", WHITE, BLACK, 1, 1);
+  GFX_draw_string(0, 40, (unsigned char *)"Szosty", WHITE, BLACK, 1, 1);
+  GFX_draw_string(0, 32, (unsigned char *)"Piąty", WHITE, BLACK, 1, 1);
+  GFX_draw_string(0, 24, (unsigned char *)"Czwarty", WHITE, BLACK, 1, 1);
+  GFX_draw_string(0, 16, (unsigned char *)"Trzeci", WHITE, BLACK, 1, 1);
+  GFX_draw_string(0, 8, (unsigned char *)"Drugi", WHITE, BLACK, 1, 1);
+  GFX_draw_string(0, 0, (unsigned char *)"Pierszy", WHITE, BLACK, 1, 1);*/
+  SSD1306_init();
+  SSD1306_display_repaint();
+  BMP280_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  char usb_com[40];
+  uint64_t cnt = 0;
+
   while (1)
   {
+
+	  BMP280_read();
+	  SSD1306_display_repaint();
+	  HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
