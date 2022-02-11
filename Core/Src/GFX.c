@@ -139,7 +139,7 @@ void GFX_draw_string(int16_t x, int16_t y, unsigned char * c, uint16_t color, ui
 	while(*c)
 	{
 		GFX_draw_char(x+offset, y, *c, color, bg, size_x, size_y);
-		offset += (5 + 2) * size_x;
+		offset += (5 + 1) * size_x;
 		c++;
 	}
 }

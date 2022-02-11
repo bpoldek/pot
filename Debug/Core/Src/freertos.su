@@ -1,0 +1,4 @@
+freertos.c:71:6:vApplicationGetIdleTaskMemory	24	static
+freertos.c:85:6:MX_FREERTOS_Init	72	static
+freertos.c:128:6:OLED_DISP_Init	16	static
+freertos.c:151:6:BMP_read_init	16	static

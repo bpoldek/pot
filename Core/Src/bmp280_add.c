@@ -81,13 +81,13 @@ int8_t BMP280_read(void) {
      rslt = bmp280_get_uncomp_data(&ucomp_data, &bmp);
 
      /* Konwersja danych na liczby 32-bitowe */
-     // rslt = bmp280_get_comp_pres_32bit(&pres32, ucomp_data.uncomp_press, &bmp);
-     //  rslt = bmp280_get_comp_temp_32bit(&temp32, ucomp_data.uncomp_temp, &bmp);
+      //rslt = bmp280_get_comp_pres_32bit(&pres32, ucomp_data.uncomp_press, &bmp);
+     // rslt = bmp280_get_comp_temp_32bit(&temp32, ucomp_data.uncomp_temp, &bmp);
 
 
      /* Konwersja na liczby zmiennoprzecinkowe */
-    rslt = bmp280_get_comp_pres_double(&pres, ucomp_data.uncomp_press, &bmp);
-    rslt = bmp280_get_comp_temp_double(&temp, ucomp_data.uncomp_temp, &bmp);
+      rslt = bmp280_get_comp_pres_double(&pres, ucomp_data.uncomp_press, &bmp);
+      rslt = bmp280_get_comp_temp_double(&temp, ucomp_data.uncomp_temp, &bmp);
 
      /* Wyswietlenie wartosci */
 
@@ -96,10 +96,10 @@ int8_t BMP280_read(void) {
      char usb_com[42];
      sprintf(komunikat1,"%.2f C ", temp);
      sprintf(komunikat2,"%.2f HPa ", pres/100);
-     GFX_draw_string(0, 56, (unsigned char *)"Temperatura:", WHITE, BLACK, 1, 1);
-     GFX_draw_string(0, 48, komunikat1, WHITE, BLACK, 1, 1);
-     GFX_draw_string(0, 40, (unsigned char *)"Cisnienie:", WHITE, BLACK, 1, 1);
-     GFX_draw_string(0, 32, komunikat2, WHITE, BLACK, 1, 1);
+     GFX_draw_string(0, 48, (unsigned char *)"Temperatura:", WHITE, BLACK, 1, 1);
+     GFX_draw_string(0, 40, komunikat1, WHITE, BLACK, 1, 1);
+     GFX_draw_string(0, 32, (unsigned char *)"Cisnienie:", WHITE, BLACK, 1, 1);
+     GFX_draw_string(0, 24, komunikat2, WHITE, BLACK, 1, 1);
      sprintf(usb_com,"Temperatura: %.2f Ciśnienie: %.2f \r\n", temp ,pres/100);
      CDC_Transmit_FS(&usb_com,sizeof(usb_com));
 

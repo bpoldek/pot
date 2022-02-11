@@ -22,6 +22,7 @@
 #include "adc.h"
 #include "dma.h"
 #include "i2c.h"
+#include "rtc.h"
 #include "usb_device.h"
 #include "gpio.h"
 
@@ -49,41 +50,61 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t i2c_scaner(I2C_HandleTypeDef *interface)
-{
-	uint8_t i =0;
-	HAL_StatusTypeDef result;
-	for (i=1; i<128; i++)
-	{
-	  /*
-	   * the HAL wants a left aligned i2c address
-	   * &hi2c1 is the handle
-	   * (uint16_t)(i<<1) is the i2c address left aligned
-	   * retries 2
-	   * timeout 2
-	   */
-	  result = HAL_I2C_IsDeviceReady(&hi2c2, (uint16_t)(i<<1), 2, 2);
-	  if (result != HAL_OK) // HAL_ERROR or HAL_BUSY or HAL_TIMEOUT
-	  {
-		  return false;
-	  }
-	  if (result == HAL_OK)
-	  {
-		 return i;
-	  }
-	}
-}
+char time[10];
+char date[10];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-void PeriphCommonClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+/*xTaskHandle bmp280_read_data;
+xTaskHandle OLED_DISP;
+xTaskHandle Transmit_Data_USB;*/
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void get_time(void)
+{
+	 RTC_DateTypeDef gDate;
+	 RTC_TimeTypeDef gTime;
+	/* Get the RTC current Time */
+	 HAL_RTC_GetTime(&hrtc, &gTime, RTC_FORMAT_BIN);
+	/* Get the RTC current Date */
+	 HAL_RTC_GetDate(&hrtc, &gDate, RTC_FORMAT_BIN);
+	/* Display time Format: hh:mm:ss */
+
+	 sprintf((char*)time,"%02d:%02d %02d.%02d.%2d",gTime.Hours, gTime.Minutes,gDate.Date, gDate.Month, gDate.Year);
+	/* Display date Format: dd-mm-yy */
+
+	 //sprintf((char*)date,"%02d.%02d.%2d",gDate.Date, gDate.Month, gDate.Year);
+	  GFX_draw_string(0, 56, time, BLACK, WHITE, 1, 1);
+	  //GFX_draw_string(0, 0, date, WHITE, BLACK, 1, 1);
+}
+void set_time (void)
+{
+  RTC_TimeTypeDef sTime;
+  RTC_DateTypeDef sDate;
+  sTime.Hours = 0x19; // set hours
+  sTime.Minutes = 0x22; // set minutes
+  sTime.Seconds = 0x30; // set seconds
+  sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+  sTime.StoreOperation = RTC_STOREOPERATION_RESET;
+  if (HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sDate.WeekDay = RTC_WEEKDAY_THURSDAY; //
+  sDate.Month = RTC_MONTH_FEBRUARY; //
+  sDate.Date = 0x10; // date
+  sDate.Year = 0x22; // year
+  if (HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BCD) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x32F2); // backup register
+}
 
 /* USER CODE END 0 */
 
@@ -109,9 +130,6 @@ int main(void)
   /* Configure the system clock */
   SystemClock_Config();
 
-/* Configure the peripherals common clocks */
-  PeriphCommonClock_Config();
-
   /* USER CODE BEGIN SysInit */
 
   /* USER CODE END SysInit */
@@ -123,26 +141,9 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C2_Init();
   MX_USB_DEVICE_Init();
+  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
 
-	  bool addrs;
-HAL_StatusTypeDef result;
-uint8_t i=0;
-/*for (i=1; i<128; i++)
-{
-  result = HAL_I2C_IsDeviceReady(&hi2c2, (uint16_t)(i<<1), 2, 2);
-  if (result != HAL_OK) // HAL_ERROR or HAL_BUSY or HAL_TIMEOUT
-  {
-	  addrs=false;
-  }
-  if (result == HAL_OK)
-  {
-	 addrs=true;
-  }
-}
-  uint16_t addres;
-
-  HAL_Delay (2000);*/
   /*GFX_draw_string(0, 56, (unsigned char *)"Osmy", WHITE, BLACK, 1, 1);
   GFX_draw_string(0, 48, (unsigned char *)"Siodmy", WHITE, BLACK, 1, 1);
   GFX_draw_string(0, 40, (unsigned char *)"Szosty", WHITE, BLACK, 1, 1);
@@ -151,6 +152,11 @@ uint8_t i=0;
   GFX_draw_string(0, 16, (unsigned char *)"Trzeci", WHITE, BLACK, 1, 1);
   GFX_draw_string(0, 8, (unsigned char *)"Drugi", WHITE, BLACK, 1, 1);
   GFX_draw_string(0, 0, (unsigned char *)"Pierszy", WHITE, BLACK, 1, 1);*/
+  /*SSD1306_init();
+  SSD1306_display_repaint();
+  BMP280_init();
+  set_time();*/
+  set_time();
   SSD1306_init();
   SSD1306_display_repaint();
   BMP280_init();
@@ -158,12 +164,9 @@ uint8_t i=0;
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  char usb_com[40];
-  uint64_t cnt = 0;
-
   while (1)
   {
-
+	  get_time();
 	  BMP280_read();
 	  SSD1306_display_repaint();
 	  HAL_Delay(1000);
@@ -196,15 +199,16 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSE|RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48|RCC_OSCILLATORTYPE_HSI
+                              |RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
-  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-  RCC_OscInitStruct.MSICalibrationValue = 0;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_MSI;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 40;
+  RCC_OscInitStruct.PLL.PLLN = 10;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
@@ -225,40 +229,32 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Enable MSI Auto calibration
-  */
-  HAL_RCCEx_EnableMSIPLLMode();
-}
-
-/**
-  * @brief Peripherals Common Clock Configuration
-  * @retval None
-  */
-void PeriphCommonClock_Config(void)
-{
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
-
-  /** Initializes the peripherals clock
-  */
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_ADC;
-  PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLSAI1;
-  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
-  PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_MSI;
-  PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
-  PeriphClkInit.PLLSAI1.PLLSAI1N = 24;
-  PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV2;
-  PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
-  PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
-  PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_48M2CLK|RCC_PLLSAI1_ADC1CLK;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
 }
 
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM2 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM2) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

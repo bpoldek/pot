@@ -256,5 +256,28 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 }
 
 /* USER CODE BEGIN 1 */
-
+uint16_t i2c_scaner(I2C_HandleTypeDef *interface)
+{
+	uint8_t i =0;
+	HAL_StatusTypeDef result;
+	for (i=1; i<128; i++)
+	{
+	  /*
+	   * the HAL wants a left aligned i2c address
+	   * &hi2c1 is the handle
+	   * (uint16_t)(i<<1) is the i2c address left aligned
+	   * retries 2
+	   * timeout 2
+	   */
+	  result = HAL_I2C_IsDeviceReady(&hi2c2, (uint16_t)(i<<1), 2, 2);
+	  if (result != HAL_OK) // HAL_ERROR or HAL_BUSY or HAL_TIMEOUT
+	  {
+		  return 0;
+	  }
+	  if (result == HAL_OK)
+	  {
+		 return i;
+	  }
+	}
+}
 /* USER CODE END 1 */
